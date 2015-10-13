@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8A0E1BD6-BFD2-4951-8F76-F594F3B765A0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test Projects", "Test Projects", "{6AE523A9-5111-4C5E-BF13-4F886E2F66C2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database Projects", "Database Projects", "{C4C97314-6354-406F-B01F-7009EA752818}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "ConnectorMonitoring", "ConnectorMonitoring\ConnectorMonitoring.sqlproj", "{8174E627-77DF-4FD0-8820-0622183B309F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8174E627-77DF-4FD0-8820-0622183B309F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8174E627-77DF-4FD0-8820-0622183B309F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8174E627-77DF-4FD0-8820-0622183B309F}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{8174E627-77DF-4FD0-8820-0622183B309F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8174E627-77DF-4FD0-8820-0622183B309F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8174E627-77DF-4FD0-8820-0622183B309F}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8174E627-77DF-4FD0-8820-0622183B309F} = {C4C97314-6354-406F-B01F-7009EA752818}
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = Client_Schemas.vsmdi
+	EndGlobalSection
+EndGlobal
