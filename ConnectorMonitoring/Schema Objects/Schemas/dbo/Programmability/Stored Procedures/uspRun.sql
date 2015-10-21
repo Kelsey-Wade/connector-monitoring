@@ -24,7 +24,8 @@ begin try
 
 end try
 begin catch
-	exec uspLogExecutionEnd @MonitoringProcedure_ID = @MonitoringProcedure_ID, @Execution_ID = @Execution_ID, @Content = null, @Status = 'Failed'
+	declare @errorMessage varchar(1000) = ERROR_MESSAGE()
+	exec uspLogExecutionEnd @MonitoringProcedure_ID = @MonitoringProcedure_ID, @Execution_ID = @Execution_ID, @Content = @errorMessage, @Status = 'Failed'
 	return
 end catch
 

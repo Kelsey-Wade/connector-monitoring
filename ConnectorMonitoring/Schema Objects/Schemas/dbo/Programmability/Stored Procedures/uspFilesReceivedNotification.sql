@@ -4,9 +4,9 @@
 	, @Environment varchar(100)
 	, @StartTime datetime
 	, @EndTime datetime
-	, @Email_From varchar(100) = 'jeff.solomon@arcadiasolutions.com'
-	, @Email_To varchar(100) = 'jeff.solomon@arcadiasolutions.com'
-	, @Email_CC varchar(100) = 'jeff.solomon@arcadiasolutions.com'
+	, @Email_From varchar(100) = null
+	, @Email_To varchar(100) = null
+	, @Email_CC varchar(100) = null
 	, @Email_Content_Type varchar(100) = 'HTML'
 	, @IsExternalEmail bit
 	, @DoNotSend bit = 1
@@ -22,9 +22,9 @@ declare @body varchar(max)
 		, @finalMessageText varchar(max)
 		, @end varchar(100) 
 		, @runs int
-		, @sftpUN varchar(100) = ''
-		, @jobStatus varchar(100) = 'status unknown'
 
+
+select @Email_From = isnull(@Email_From, 'Arcadia Monitoring <no-reply@arcadiasolutions.com>')
 --Basic HTML structures for the email. 
 set @body  = 
 '<!DOCTYPE html>
@@ -34,10 +34,11 @@ set @body  =
 
 
 set @tableHeader = '
-<p style="text-align:left;padding:4px"> <strong>{n}</strong> files recieved from <strong>{u}</strong> on <strong>{d}</strong>. Processing {j}.</p>'
+<h3>{n} files recieved from {u} on {d}.</h3>
+<p>Processing of files for this source <strong>{s}</strong> Overall file processing <strong>{j}</strong> </p>'
 
 set @tableStart = '
-	<table style="border-collapse:collapse;border:1px solid #7E7E7E;"> 
+	<table style="font-family:Calibri,sans-serif;border-collapse:collapse;border:1px solid #7E7E7E;"> 
 		<thead style="font-weight:bold;border-bottom:1px solid #7E7E7E;">
 			<th style="text-align:left;padding:2px;">File Name</th>
 			<th style="text-align:left;padding:2px;padding-left:20px;">Rows</th>
@@ -47,9 +48,9 @@ set @tableStart = '
 
 set @tableRow = '
 		<tr>
-			<td style="border-bottom: 1px solid #DBDBDB;padding-left:2px;">{f}</td>
-			<td style="border-bottom: 1px solid #DBDBDB;padding-left:20px;">{rc}</td>
-			<td style="border-bottom: 1px solid #DBDBDB;padding-left:20px;padding-right:10px;">{ts}</td>
+			<td style="border-bottom: 1px solid {color};padding-left:2px;">{f}</td>
+			<td style="border-bottom: 1px solid {color};padding-left:20px;">{rc}</td>
+			<td style="border-bottom: 1px solid {color};padding-left:20px;padding-right:10px;">{ts}</td>
 		</tr>'
 
 set @tableEnd = '
@@ -71,48 +72,64 @@ if object_id('tempdb..#finalLog') is not null drop table #finalLog
 select distinct
 	upper(@Environment) as Environment
 	, right(FileName, charindex('\', reverse(fileName))-1) as FileNameShort
+	, 'PRS_' + p.Arc_Presource_Acronym + '_' + @Environment + '_PRS_Decrypt_ALL' as taskName
 	, f.*
 into #fileLog
 from InformaticaConfig_DEV.maint.FileIntakeLog f
 join InformaticaConfig_DEV.dbo.arc_presource p
 	on p.arc_sftp_extract_id = f.sftp_id
-where p.Arc_PreSource_Acronym = @Source
+join InformaticaConfig_DEV.dbo.v_TaskFlow_Tasks t
+	on t.TaskName = 'PRS_' + p.Arc_Presource_Acronym + '_' + @Environment + '_PRS_Decrypt_ALL'
+	and t.TaskFlowName = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Load_Prestaging'
+where p.Arc_PreSource_Acronym like @Source
 and f.FileName like '%\'+@Environment+'\%' 
 
 
 select *
 into #informaticaLog
 from informaticaconfig_dev.dbo.inf_log with (nolock)
-where inf_startTime between @StartTime and @EndTime
-and inf_object_name in(
-	'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Load_Prestaging',
-	'PRS_'+ @Source + '_' + @Environment + '_PRS_Decrypt_ALL'
-	)
+where inf_startTime between isnull(@StartTime, dateadd(day, -1, @EndTime)) and @EndTime --If no starttime provided, look back 1 day.
+and (inf_object_name = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Load_Prestaging'
+or inf_object_name = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Preprocess_FlatFiles'
+or Inf_Object_Name like	'PRS_'+ @Source + '_' + @Environment + '_PRS_Decrypt_ALL')
 
 select tf.Inf_Object_Name
+	, d.Inf_Object_Name as d_Name
 	, tf.Inf_StartTime as tf_start
 	, tf.Inf_Status as tf_status
+	, tf.Inf_ErrorMessage as tf_Error
 	, d.Inf_StartTime as d_start
 	, d.Inf_Status as d_status
+	, d.Inf_ErrorMessage as d_Error
 	, d.Inf_SuccessSourceRows as d_rowsSource
 	, d.Inf_SuccessTargetRows as d_rowsTarget
+	, p.Arc_SFTP_Extract_ID as SFTPId
+	, p.Arc_Presource_Acronym as Acronym
 	, f.*
-	, row_number() over (partition by tf.Inf_StartTime order by FileNameShort) as fileNum
+	, row_number() over (partition by tf.Inf_StartTime, d.Inf_Object_Name order by FileNameShort) as fileNum
+	, row_number() over (partition by tf.Inf_StartTime, d.Inf_Object_Name order by FileNameShort desc) as fileNumReverse
 into #finalLog
 from #informaticaLog tf
-left join #informaticaLog d
+inner join #informaticaLog d
 	on d.Inf_StartTime between tf.Inf_StartTime and tf.Inf_EndTime
 	and d.Inf_Type = 'MTT'
+inner join informaticaconfig_dev..v_TaskFlow_Tasks v
+	on v.TaskFlowName = tf.Inf_Object_Name
+	and v.TaskName = d.Inf_Object_Name
+left join InformaticaConfig_DEV.dbo.Arc_Presource p
+	on d.Inf_Object_Name = 'PRS_' + p.Arc_Presource_Acronym + '_' + @Environment + '_PRS_Decrypt_ALL'
 left join #fileLog f
 	on f.Timestamp between tf.Inf_StartTime and tf.Inf_EndTime
+	and f.TaskName = v.taskName
 where tf.Inf_Type = 'WORKFLOW'
+and (p.Arc_Presource_Acronym is not null or 
+v.taskName = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Preprocess_FlatFiles')
+
 
 if @@RowCount > 0 --Do not bother if we haven't tried to load anything. 
 begin
 	--Calculate number of runs and total number of files
 	select @runs = count(distinct tf_start)
-			, @sftpUN = isnull(right('0000'+cast(max(sftp_id) as varchar)+ '-',5),'')  + upper(@Source) + '_SFTP_'+upper(@Environment)
-			, @jobStatus = case when d_status <> 'Success' or tf_status <> 'Success' then 'was unsuccessful' else 'succeeded' end
 	from #finalLog
 
 	--Format body based on numbers. 
@@ -122,11 +139,13 @@ begin
 	select @bodyTables +=
 	case when fileNum = 1
 	then 
-		replace(replace(replace(replace(@tableHeader,
-			 '{n}', (select isnull(max(fileNum), 0) from #finalLog l where l.tf_start = f.tf_start and l.FileNameShort is not null))
-			,'{d}', convert(varchar, cast(tf_start as datetime)))
-			,'{u}', @sftpUN)
-			,'{j}', @jobStatus)
+		replace(replace(replace(replace(replace(
+			@tableHeader
+				,'{n}', fileCount)
+				,'{d}', convert(varchar, cast(f.tf_start as datetime)))
+				,'{u}', sftpName)
+				,'{j}', case when tf_Succeeded = 1 then 'succeeded.' else 'failed with the following error: <blockquote>' + summary.tf_Error + '</blockquote>' end)
+				,'{s}', case when d_Succeeded = 1 then 'succeeded.' else 'failed with the following error: <blockquote>' + summary.d_Error + '</blockquote>' end)
 		+ case when FileNameShort is not null then @tableStart else '' end
 	else '' end + 
 	case when FileNameShort is not null then 
@@ -137,22 +156,37 @@ begin
 					else FileNameShort end)
 				,'{rc}', [RowCount])
 				,'{ts}', convert(varchar, [TimeStamp]))
-				,'{color}', case when fileNum%2 = 1 then '#E8F3FC;' else 'white;' end)
+				,'{color}', case when fileNumReverse = 1 then '#7E7E7E' else '#DBDBDB' end)
 	else '' end +
 	case when fileNum = (select isnull(max(fileNum), 0) from #finalLog l where l.tf_start = f.tf_start)
 		then @tableEnd else '' end
 	from #finalLog f
-	order by tf_start, fileNum
+	inner join (
+		select
+			tf_Start
+			, Acronym 
+			, right('0000'+cast(max(SftpId) as varchar),4) + '-' + upper(Acronym) + '_SFTP_'+upper(@Environment) as sftpName
+			, sum(case when FileNameShort is not null then 1 else 0 end) as fileCount
+			, max(case when d_status = 'success' then 1 else 0 end) as d_Succeeded
+			, max(case when tf_status = 'success' then 1 else 0 end) as tf_Succeeded
+			, max(case when d_status != 'success' then d_Error else '' end) as d_Error
+			, max(case when tf_status != 'success' then tf_Error else '' end) as tf_Error
+		from #finalLog
+		group by tf_Start, Acronym, SftpId) summary 
+		on summary.tf_start = f.tf_Start 
+		and summary.Acronym = f.Acronym
+	order by f.tf_start, f.Acronym, fileNum
 
 
 
 	select @finalMessageText = @body + @bodyTables + @end
 
 	if @DoNotSend = 0
+
 		EXEC msdb.dbo.sp_send_dbmail  
 			@body = @finalMessageText,
-			@recipients ='jeff.solomon@arcadiasolutions.com',
-			@copy_recipients ='jsolomon9009@gmail.com',
+			@recipients = @Email_To,
+			@copy_recipients = @Email_CC,
 			@subject='Arcadia Files Received Notification',
 			@from_address = @Email_From,
 			@body_format='HTML',

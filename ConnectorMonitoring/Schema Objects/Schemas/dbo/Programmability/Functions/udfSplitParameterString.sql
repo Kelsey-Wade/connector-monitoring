@@ -12,15 +12,12 @@ BEGIN
 
 	if @input like '%=%'
 	begin 
-		declare @xml xml = cast(('<X>'+replace(@input,',','</X><X>')+'</X>') as xml)
 
 		insert @returntable (parameter, value)
-		select left(pair, charindex('=', pair) - 1) as parameter
-				, right(pair, len(pair)-charindex('=', pair)) as value
-		from(
-			SELECT N.value('.', 'varchar(1000)') as pair 
-			FROM @xml.nodes('X') as T(N)
-		)x
+		select left(val, charindex('=', val) - 1) as parameter
+				, right(val, len(val)-charindex('=', val)) as value
+		from [dbo].[udfSplitString] (@input)
+		where val like '%=%'
 
 	end
 	return

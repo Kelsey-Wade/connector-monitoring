@@ -15,52 +15,30 @@ EXEC [dbo].[uspConfigureMonitoring]
 EXEC dbo.uspConfigureMonitoringSchedules 
 	@MonitoringProcedure_ID = @currentId
 	, @ScheduleName = 'Daily'
-	, @StartTime = '16:00'
+	, @StartTime = '16:30'
 
---EXEC [dbo].[uspConfigureMonitoring]
---	@TaskType = 'SendFileReceivedNotification'
---	, @Client = 'TSTCLI2'
---	, @Source = 'TESTCON'
---	, @Environment = 'DEV'
---	, @Email_From = 'jeff.solomon@arcadiasolutions.com'
---	, @Email_To = 'jeff.solomon@arcadiasolutions.com'
---	, @Email_CC = null
---	, @Content_Type = 'HTML'
---	, @IsExternalEmail = 0
---	, @IsInternalEmail = 1
---	, @ID = @currentID output
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '9:00'
 
---EXEC dbo.uspConfigureMonitoringSchedules 
---	@MonitoringProcedure_ID = @currentId
---	, @ScheduleName = 'Daily'
---	, @StartTime = '11:00' 
+EXEC [dbo].[uspConfigureMonitoring]
+	@TaskType = 'SendFileReceivedNotification'
+	, @Source = 'PR-LAORIED'
+	, @Environment = 'PRD'
+	, @Email_From = null
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com'
+	, @Email_CC = null
+	, @Content_Type = 'HTML'
+	, @IsExternalEmail = 0
+	, @IsInternalEmail = 1
+	, @AdditionalParameters = 'Group=GR-LAED,DoNotSend=0'
+	, @ID = @currentID output
+	
 
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '11:00' 
 
---EXEC [dbo].[uspConfigureMonitoring]
---	@TaskType = 'SendFileReceivedNotification'
---	, @Client = 'TSTCLI3'
---	, @Source = 'TESTCON'
---	, @Environment = 'DEV'
---	, @Email_From = 'jeff.solomon@arcadiasolutions.com'
---	, @Email_To = 'jeff.solomon@arcadiasolutions.com'
---	, @Email_CC = null
---	, @Content_Type = 'HTML'
---	, @IsExternalEmail = 0
---	, @IsInternalEmail = 1
---	, @ID = @currentID output
-
-----EXEC dbo.uspConfigureMonitoringSchedules 
-----	@MonitoringProcedure_ID = @currentId
-----	, @ScheduleName = 'Weekly Monday'
-----	, @StartTime = '13:00'
-
-----EXEC dbo.uspConfigureMonitoringSchedules 
-----	@MonitoringProcedure_ID = @currentId
-----	, @ScheduleName = 'Weekly Wednesday'
-----	, @StartTime = '13:00'
-
---EXEC dbo.uspConfigureMonitoringSchedules 
---	@MonitoringProcedure_ID = @currentId
---	, @ScheduleName = 'Weekly Friday'
---	, @StartTime = '13:00'
 

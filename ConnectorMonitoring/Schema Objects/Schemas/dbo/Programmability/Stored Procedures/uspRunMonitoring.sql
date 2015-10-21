@@ -84,6 +84,7 @@ WITH DailySchedules AS (
 	left join (
 		select MonitoringProcedure_ID, max(StartTime) as lastStartTime
 		from ExecutionLog e
+		where e.Execution_Status = 'Success'
 		group by MonitoringProcedure_ID
 		) as lastStart
 			on lastStart.MonitoringProcedure_ID = t.ID
