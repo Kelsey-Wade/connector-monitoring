@@ -22,27 +22,27 @@ declare @body varchar(max)
 		, @finalMessageText varchar(max)
 		, @end varchar(100) 
 		, @runs int
+		, @columnErrors varchar(max) = ''
 
-
-select @Email_From = isnull(@Email_From, 'Arcadia Monitoring <no-reply@arcadiasolutions.com>')
+select @Email_From = isnull(@Email_From, 'Arcadia Monitoring <noreply@arcadiasolutions.com>')
 --Basic HTML structures for the email. 
 set @body  = 
 '<!DOCTYPE html>
 <html>
-<body style="font-family:Calibri,sans-serif;">
+<body style="font-family:Calibri,sans-serif;font-size: 75%;">
 	<p>Hello,<br><br>This message is to inform you that Arcadia Healthcare Solutions has attempted to load files from your organization. {runs} <br><br>If you have any questions, please contact...<br><br>The files received and row counts are listed below.</p>'
 
 
 set @tableHeader = '
-<h3>{n} files recieved from {u} on {d}.</h3>
-<p>Processing of files for this source <strong>{s}</strong> Overall file processing <strong>{j}</strong> </p>'
+<h5>{n} files were recieved from {u} on {d}.</h5>
+<p>Decryption of these files <strong>{s}</strong> Overall file processing <strong>{j}</strong> </p>'
 
 set @tableStart = '
-	<table style="font-family:Calibri,sans-serif;border-collapse:collapse;border:1px solid #7E7E7E;"> 
-		<thead style="font-weight:bold;border-bottom:1px solid #7E7E7E;">
-			<th style="text-align:left;padding:2px;">File Name</th>
-			<th style="text-align:left;padding:2px;padding-left:20px;">Rows</th>
-			<th style="text-align:left;padding:2px;padding-left:20px;">Timestamp</th>
+	<table style="font-family:Calibri,sans-serif;font-size: 75%;border-collapse:collapse;border:1px solid #7E7E7E;"> 
+		<thead style="font-weight:bold;">
+			<th style="border-bottom:1px solid #7E7E7E;text-align:left;padding:2px;">File Name</th>
+			<th style="border-bottom:1px solid #7E7E7E;text-align:left;padding:2px;padding-left:20px;">Rows</th>
+			<th style="border-bottom:1px solid #7E7E7E;text-align:left;padding:2px;padding-left:20px;">Timestamp</th>
 		</thead>
 		<tbody style="border-bottom:1px solid #AFAFAF;">'
 
@@ -128,6 +128,11 @@ v.taskName = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Prepro
 
 if @@RowCount > 0 --Do not bother if we haven't tried to load anything. 
 begin
+	update #finalLog 
+	set FileNameShort = case when FileNameShort like '#[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]#[_]#[0-9][0-9][0-9][0-9]#[_]%' 
+						then right(FileNameShort, len(FileNameShort) - 24)
+						else FileNameShort end
+	
 	--Calculate number of runs and total number of files
 	select @runs = count(distinct tf_start)
 	from #finalLog
@@ -146,19 +151,18 @@ begin
 				,'{u}', sftpName)
 				,'{j}', case when tf_Succeeded = 1 then 'succeeded.' else 'failed with the following error: <blockquote>' + summary.tf_Error + '</blockquote>' end)
 				,'{s}', case when d_Succeeded = 1 then 'succeeded.' else 'failed with the following error: <blockquote>' + summary.d_Error + '</blockquote>' end)
-		+ case when FileNameShort is not null then @tableStart else '' end
+		+ 
+	case when FileNameShort is not null then @tableStart else '' end
 	else '' end + 
 	case when FileNameShort is not null then 
 		replace(replace(replace(replace(
 			@tableRow
-				,'{f}', case when FileNameShort like '#[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]#[_]#[0-9][0-9][0-9][0-9]#[_]%' 
-					then right(FileNameShort, len(FileNameShort) - 24)
-					else FileNameShort end)
+				,'{f}', FileNameShort)
 				,'{rc}', [RowCount])
 				,'{ts}', convert(varchar, [TimeStamp]))
-				,'{color}', case when fileNumReverse = 1 then '#7E7E7E' else '#DBDBDB' end)
+				,'{color}', case when fileNum = fileCount then '#7E7E7E' else '#DBDBDB' end)
 	else '' end +
-	case when fileNum = (select isnull(max(fileNum), 0) from #finalLog l where l.tf_start = f.tf_start)
+	case when fileNum = fileCount
 		then @tableEnd else '' end
 	from #finalLog f
 	inner join (
@@ -179,7 +183,15 @@ begin
 
 
 
-	select @finalMessageText = @body + @bodyTables + @end
+		select @columnErrors = '<h5>The following files were not loaded due to formatting errors:</h5>'
+		select @columnErrors+= '
+<p><strong>'+FileNameShort+'</strong> (' + right('0000'+cast(SftpId as varchar),4) + '-' + upper(Acronym) + '_SFTP_'+upper(@Environment)  + ')</p>'
+		+ErrorMessage
+		from #finalLog where nullif(ErrorMessage, '') is not null 
+		if @@rowcount > 0 
+			select @finalMessageText = @body + @bodyTables + @columnErrors + @end
+		else 
+			select @finalMessageText = @body + @bodyTables + @end
 
 	if @DoNotSend = 0
 

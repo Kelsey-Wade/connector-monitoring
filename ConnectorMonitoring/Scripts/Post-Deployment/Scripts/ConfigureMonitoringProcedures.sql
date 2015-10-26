@@ -42,3 +42,23 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	, @StartTime = '11:00' 
 
 
+EXEC [dbo].[uspConfigureMonitoring]
+	@TaskType = 'SendFileReceivedNotification'
+	, @Source = '%'
+	, @Environment = 'PRD'
+	, @Email_From = null
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com'
+	, @Email_CC = null
+	, @Content_Type = 'HTML'
+	, @IsExternalEmail = 0
+	, @IsInternalEmail = 1
+	, @AdditionalParameters = 'Group=GR-LAED,DoNotSend=0'
+	, @ID = @currentID output
+	
+
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '12:30' 
+
+
