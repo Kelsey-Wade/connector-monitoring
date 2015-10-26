@@ -13,50 +13,103 @@
 AS
 	
 --HTML Email variables. 
-declare @body varchar(max)
+declare @start varchar(max)
 		, @tableStart varchar(max)
 		, @tableHeader varchar(max)
 		, @tableRow varchar(max)
 		, @tableEnd varchar(100)
-		, @bodyTables varchar(max) = ''
+		, @tables varchar(max) = ''
 		, @finalMessageText varchar(max)
 		, @end varchar(100) 
 		, @runs int
-		, @columnErrors varchar(max) = ''
+		, @errors varchar(max) = ''
+		, @overallStatus varchar(max) = ''
+		, @sourceStatus varchar(max) = ''
+
 
 select @Email_From = isnull(@Email_From, 'Arcadia Monitoring <noreply@arcadiasolutions.com>')
---Basic HTML structures for the email. 
-set @body  = 
+--Basic HTML structures for the email.
+
+--Formatting.
+declare 
+	@ok varchar(1000) = '<span style="color:green;font-weight:bold;">OK</span>',
+	@alert varchar(1000) = '<span style="color:red;font-weight:bold;">ALERT</span>',
+	@h2 varchar(1000) = '"margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:0in;
+	margin-bottom:.0001pt;
+	line-height:107%;
+	font-size:13.0pt;
+	font-family:Calibri Light,Calibri,sans-serif;
+	color:#2E74B5;
+	font-weight:normal"', 
+	@h3 varchar(1000) = '"margin-top:5.0pt;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:0in;
+	margin-bottom:.0001pt;
+	line-height:107%;
+	font-size:11.0pt;
+	font-family:Calibri Light,Calibri,sans-serif;
+	color:#1F4D78;
+	font-weight:normal;"'
+	, @tableStyle varchar(1000) ='"font-family:Calibri Light,Calibri,sans-serif;font-size:80%;border-collapse:collapse;border:1px solid #DBDBDB;margin-top:4.0pt;width:75%;"'
+ 
+set @start  = 
 '<!DOCTYPE html>
 <html>
-<body style="font-family:Calibri,sans-serif;font-size: 75%;">
-	<p>Hello,<br><br>This message is to inform you that Arcadia Healthcare Solutions has attempted to load files from your organization. {runs} <br><br>If you have any questions, please contact...<br><br>The files received and row counts are listed below.</p>'
+<body style="font-family:Calibri,sans-serif;">'
 
+set @overallStatus = '
+	<h2 style='+@h2+'>OVERALL JOB STATUS: {j}</h2>
+	{error}'
 
-set @tableHeader = '
-<h5>{n} files were recieved from {u} on {d}.</h5>
-<p>Decryption of these files <strong>{s}</strong> Overall file processing <strong>{j}</strong> </p>'
+set @sourceStatus = '
+
+	<h2 style='+@h2+'>SOURCE: <span style="font-weight:bold">{u}</span></h2>
+	<h3 style='+@h3+'>STATUS</h3>
+	<div style="width: 100%; max-width: 800px;">
+		<table style='+@tableStyle+'>
+		<tbody>
+			<tr>
+				<td style="padding-left:8px;width:100px;"><span style="font-weight:normal">Start Time</span></td>
+				<td><strong>{d}</strong></td>
+				<td></td>
+			</tr>
+			<tr>
+				<td style="padding-left:8px;width:100px;">Decrypted</td>
+				<td><strong>{decrypted}</strong> Files</td>
+				<td style="text-align:right;padding-right:10px;">{decryptStatus}</td>
+			</tr>
+			<tr>
+				<td style="padding-left:8px;width:100px;">Processed</td>
+				<td><strong>{n}</strong> Files</td>
+				<td style="text-align:right;padding-right:10px;">{receivedStatus}</td>
+			</tr>
+		</tbody>
+		</table>
+	</div>'
+
 
 set @tableStart = '
-	<table style="font-family:Calibri,sans-serif;font-size: 75%;border-collapse:collapse;border:1px solid #7E7E7E;"> 
-		<thead style="font-weight:bold;">
-			<th style="border-bottom:1px solid #7E7E7E;text-align:left;padding:2px;">File Name</th>
-			<th style="border-bottom:1px solid #7E7E7E;text-align:left;padding:2px;padding-left:20px;">Rows</th>
-			<th style="border-bottom:1px solid #7E7E7E;text-align:left;padding:2px;padding-left:20px;">Timestamp</th>
-		</thead>
-		<tbody style="border-bottom:1px solid #AFAFAF;">'
+	<h3 style='+@h3+'>FILES</h3>
+	<div style="width: 100%; max-width: 800px;">
+		<table style='+@tableStyle+'> 
+'
 
 set @tableRow = '
-		<tr>
-			<td style="border-bottom: 1px solid {color};padding-left:2px;">{f}</td>
-			<td style="border-bottom: 1px solid {color};padding-left:20px;">{rc}</td>
-			<td style="border-bottom: 1px solid {color};padding-left:20px;padding-right:10px;">{ts}</td>
-		</tr>'
+			<tr>
+				<td style="padding-left:8px;">{f}</td>
+				<td><strong>{rc}</strong> Rows</td>
+				<td>{ts}</td>
+				<td style="text-align:right;padding-right:10px;">{status}</td>
+			</tr>'
 
 set @tableEnd = '
-	</tbody>
-	</table>
-	<br>'
+		</table>
+	</div>
+<br>'
 
 set @end = '
 </body>
@@ -90,7 +143,6 @@ into #informaticaLog
 from informaticaconfig_dev.dbo.inf_log with (nolock)
 where inf_startTime between isnull(@StartTime, dateadd(day, -1, @EndTime)) and @EndTime --If no starttime provided, look back 1 day.
 and (inf_object_name = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Load_Prestaging'
-or inf_object_name = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Preprocess_FlatFiles'
 or Inf_Object_Name like	'PRS_'+ @Source + '_' + @Environment + '_PRS_Decrypt_ALL')
 
 select tf.Inf_Object_Name
@@ -108,6 +160,7 @@ select tf.Inf_Object_Name
 	, f.*
 	, row_number() over (partition by tf.Inf_StartTime, d.Inf_Object_Name order by FileNameShort) as fileNum
 	, row_number() over (partition by tf.Inf_StartTime, d.Inf_Object_Name order by FileNameShort desc) as fileNumReverse
+	, row_number() over (partition by tf.Inf_StartTime order by FileNameShort) as rowPerTF
 into #finalLog
 from #informaticaLog tf
 inner join #informaticaLog d
@@ -116,14 +169,13 @@ inner join #informaticaLog d
 inner join informaticaconfig_dev..v_TaskFlow_Tasks v
 	on v.TaskFlowName = tf.Inf_Object_Name
 	and v.TaskName = d.Inf_Object_Name
-left join InformaticaConfig_DEV.dbo.Arc_Presource p
+inner join InformaticaConfig_DEV.dbo.Arc_Presource p
 	on d.Inf_Object_Name = 'PRS_' + p.Arc_Presource_Acronym + '_' + @Environment + '_PRS_Decrypt_ALL'
 left join #fileLog f
 	on f.Timestamp between tf.Inf_StartTime and tf.Inf_EndTime
 	and f.TaskName = v.taskName
 where tf.Inf_Type = 'WORKFLOW'
-and (p.Arc_Presource_Acronym is not null or 
-v.taskName = 'PRS_'+ ISNULL(@Group, @Source) + '_' + @Environment + '_PRS_Preprocess_FlatFiles')
+
 
 
 if @@RowCount > 0 --Do not bother if we haven't tried to load anything. 
@@ -133,39 +185,49 @@ begin
 						then right(FileNameShort, len(FileNameShort) - 24)
 						else FileNameShort end
 	
+	alter table #finalLog add finalText varchar(max)
+
 	--Calculate number of runs and total number of files
 	select @runs = count(distinct tf_start)
 	from #finalLog
 
-	--Format body based on numbers. 
-	select @body = replace(@body, '{runs}', case when @runs > 1 then 'This has occurred '+cast(@runs as varchar) +' times since the last email we sent.' else '' end)
+	--Format body based on numbers. TODO - SHOULD WE CHANGE FORMATTING IF MULTIPLE RUNS?
+	select @start = replace(@start, '{runs}', case when @runs > 1 then 'This has occurred '+cast(@runs as varchar) +' times since the last email we sent.' else '' end)
 
 	--Build the tables from the results
-	select @bodyTables +=
-	case when fileNum = 1
+	update f 
+	set f.finalText = 
+	case when rowPerTF = 1 --First per task flow: Overall status. 
 	then 
-		replace(replace(replace(replace(replace(
-			@tableHeader
+		case when tf_Succeeded = 1 
+		then replace(replace(@overallStatus,'{j}', @ok), '{error}', '')
+		else replace(replace(@overallStatus, '{j}', @alert), '{error}', '<p style="text-indent:25px;">[ERROR] ' + summary.tf_Error + '</p>') end
+	else '' end +
+	case when fileNum = 1 --First per data source in a task flow. Source status.
+	then 
+		replace(replace(replace(replace(replace(replace(
+			@sourceStatus
 				,'{n}', fileCount)
 				,'{d}', convert(varchar, cast(f.tf_start as datetime)))
-				,'{u}', sftpName)
-				,'{j}', case when tf_Succeeded = 1 then 'succeeded.' else 'failed with the following error: <blockquote>' + summary.tf_Error + '</blockquote>' end)
-				,'{s}', case when d_Succeeded = 1 then 'succeeded.' else 'failed with the following error: <blockquote>' + summary.d_Error + '</blockquote>' end)
+				,'{u}', sftpName)	
+				,'{decrypted}', d_rowsTarget)
+				,'{decryptStatus}', case when d_Succeeded = 1  and d_rowsTarget > 0 then @ok else @alert end)--'failed with the following error: <blockquote>' + summary.d_Error + '</blockquote>' end)
+				,'{receivedStatus}', case when process_Succeeded = 1 and fileCount > 0 then @ok else @alert end)
 		+ 
 	case when FileNameShort is not null then @tableStart else '' end
 	else '' end + 
-	case when FileNameShort is not null then 
+	case when FileNameShort is not null then --Add files processed to a table. 
 		replace(replace(replace(replace(
 			@tableRow
 				,'{f}', FileNameShort)
 				,'{rc}', [RowCount])
 				,'{ts}', convert(varchar, [TimeStamp]))
-				,'{color}', case when fileNum = fileCount then '#7E7E7E' else '#DBDBDB' end)
+				,'{status}', case when nullif(ErrorMessage, '') is null and [RowCount] > 0 then @ok else @alert end)
 	else '' end +
 	case when fileNum = fileCount
 		then @tableEnd else '' end
 	from #finalLog f
-	inner join (
+	left join (
 		select
 			tf_Start
 			, Acronym 
@@ -175,23 +237,35 @@ begin
 			, max(case when tf_status = 'success' then 1 else 0 end) as tf_Succeeded
 			, max(case when d_status != 'success' then d_Error else '' end) as d_Error
 			, max(case when tf_status != 'success' then tf_Error else '' end) as tf_Error
+			, min(case when nullif(ErrorMessage, '') is null then 1 else 0 end) as process_Succeeded
 		from #finalLog
 		group by tf_Start, Acronym, SftpId) summary 
 		on summary.tf_start = f.tf_Start 
 		and summary.Acronym = f.Acronym
-	order by f.tf_start, f.Acronym, fileNum
+	
+	select @tables += finalText from #finalLog order by tf_start, Acronym, fileNum
 
 
+	--Capture all the errors. 
+		select @errors = '
+	<h2 style='+@h2+'>ERRORS:</h2>
+	<ul>'
+		select @errors+= '
+		<li><strong>[ERROR] ['+ right('0000'+cast(SftpId as varchar),4) + '-' + upper(Acronym) + '_SFTP_'+upper(@Environment) + '] ['+convert(varchar, cast(tf_start as datetime))+'] Unable to decrypt files</strong>: '+d_Error+'</li>'
 
-		select @columnErrors = '<h5>The following files were not loaded due to formatting errors:</h5>'
-		select @columnErrors+= '
-<p><strong>'+FileNameShort+'</strong> (' + right('0000'+cast(SftpId as varchar),4) + '-' + upper(Acronym) + '_SFTP_'+upper(@Environment)  + ')</p>'
-		+ErrorMessage
-		from #finalLog where nullif(ErrorMessage, '') is not null 
-		if @@rowcount > 0 
-			select @finalMessageText = @body + @bodyTables + @columnErrors + @end
+		from #finalLog where d_status != 'success'
+
+		select @errors += '
+		<li><strong>[ERROR] ['+ right('0000'+cast(SftpId as varchar),4) + '-' + upper(Acronym) + '_SFTP_'+upper(@Environment) + '] ['+convert(varchar, cast(tf_start as datetime))+'] File formatting error for '+FileNameShort+'</strong>: '+ErrorMessage+'</li>'
+		from #finalLog where nullif(ErrorMessage, '') is not null
+
+		select @errors += '
+	</ul>'
+
+		if @errors like '%<li><strong>%</strong>%</li>%'--Only show errors if found. 
+			select @finalMessageText = @start + @tables + @errors + @end
 		else 
-			select @finalMessageText = @body + @bodyTables + @end
+			select @finalMessageText = @start + @tables + @end
 
 	if @DoNotSend = 0
 
@@ -199,7 +273,7 @@ begin
 			@body = @finalMessageText,
 			@recipients = @Email_To,
 			@copy_recipients = @Email_CC,
-			@subject='Arcadia Files Received Notification',
+			@subject='Arcadia Solutions Files Received Notification',
 			@from_address = @Email_From,
 			@body_format='HTML',
 			@importance='Normal',
