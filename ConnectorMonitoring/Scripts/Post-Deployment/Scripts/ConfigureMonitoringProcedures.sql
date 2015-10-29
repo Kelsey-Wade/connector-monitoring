@@ -62,3 +62,15 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	, @StartTime = '12:30' 
 
 
+EXEC [dbo].[uspConfigureMonitoring]
+	@TaskType = 'Check for Failed SFTPs'
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com;InformaticaAlertsCT@arcadiasolutions.com'
+	, @Content_Type = 'HTML'
+	, @IsExternalEmail = 0
+	, @IsInternalEmail = 1
+	, @ID = @currentID output
+
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '09:30'

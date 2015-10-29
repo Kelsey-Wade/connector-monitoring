@@ -150,7 +150,7 @@
     <Build Include="Schema Objects\Schemas\dbo\Programmability\Stored Procedures\uspConfigureMonitoringSchedules.sql" />
     <Build Include="Schema Objects\Schemas\dbo\Programmability\Stored Procedures\uspRun.sql" />
     <Build Include="Schema Objects\Schemas\dbo\Programmability\Stored Procedures\uspConfigureExecutionParameters.sql" />
-    <Build Include="Schema Objects\Schemas\dbo\Programmability\Stored Procedures\uspCheckDeployedConnectors.sql" />
+    <Build Include="Schema Objects\Schemas\dbo\Programmability\Stored Procedures\uspNotifyFailedSFTPTasks.sql" />
     <Build Include="Schema Objects\Schemas\dbo\Programmability\Functions\udfAreEmailsArcadia.sql" />
     <Build Include="Schema Objects\Schemas\dbo\Views\v_Scheduled_Tasks.sql" />
     <Build Include="Schema Objects\Schemas\dbo\Programmability\Functions\udfSplitString.sql" />

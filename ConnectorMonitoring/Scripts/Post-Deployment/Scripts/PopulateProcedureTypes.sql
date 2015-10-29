@@ -7,7 +7,8 @@ DECLARE @procedureTypes TABLE(
 INSERT @procedureTypes (Task_Type, Proc_Name)
 VALUES
 ('SendFileReceivedNotification','uspFilesReceivedNotification'),
-('Check Connector Deploys','uspCheckDeployedConnectors')
+('Check Connector Deploys','uspCheckDeployedConnectors'),
+('Check for Failed SFTPs','uspNotifyFailedSFTPTasks')
 
 UPDATE p
 SET p.Proc_Name =  t.Proc_Name
