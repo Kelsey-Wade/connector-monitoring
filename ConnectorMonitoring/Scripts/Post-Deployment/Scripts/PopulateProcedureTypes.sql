@@ -8,7 +8,8 @@ INSERT @procedureTypes (Task_Type, Proc_Name)
 VALUES
 ('SendFileReceivedNotification','uspFilesReceivedNotification'),
 ('Check Connector Deploys','uspCheckDeployedConnectors'),
-('Check for Failed SFTPs','uspNotifyFailedSFTPTasks')
+('Check for Failed SFTPs','uspNotifyFailedSFTPTasks'),
+('Update master seed list','uspUpdateAllMasterSeeds')
 
 UPDATE p
 SET p.Proc_Name =  t.Proc_Name

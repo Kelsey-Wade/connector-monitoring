@@ -74,3 +74,18 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	@MonitoringProcedure_ID = @currentId
 	, @ScheduleName = 'Daily'
 	, @StartTime = '09:30'
+
+EXEC [dbo].[uspConfigureMonitoring]
+	@TaskType = 'Update master seed list'
+	, @Email_To = null
+	, @Content_Type = null
+	, @IsExternalEmail = 0
+	, @IsInternalEmail = 1
+	, @ID = @currentID output
+
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '07:30'
+
+	
