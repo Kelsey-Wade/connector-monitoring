@@ -32,9 +32,9 @@ select @Email_From = isnull(@Email_From, 'Arcadia Monitoring <noreply@arcadiasol
 
 --Formatting.
 declare 
-	@ok varchar(1000) = '<span style="color:green;font-weight:bold;">OK</span>',
-	@alert varchar(1000) = '<span style="color:red;font-weight:bold;">ALERT</span>',
-	@h2 varchar(1000) = '"margin-top:10.0pt;
+	@ok varchar(1000) = '<span style="color:#92D050;font-weight:bold;">OK</span>',
+	@alert varchar(1000) = '<span style="color:#FF3300;font-weight:bold;">ALERT</span>',
+	@h2 varchar(1000) = 'margin-top:10.0pt;
 	margin-right:0in;
 	margin-bottom:0in;
 	margin-left:0in;
@@ -42,8 +42,8 @@ declare
 	line-height:107%;
 	font-size:13.0pt;
 	font-family:Calibri Light,Calibri,sans-serif;
-	color:#2E74B5;
-	font-weight:normal"', 
+	color:#404040;
+	font-weight:normal;', 
 	@h3 varchar(1000) = '"margin-top:5.0pt;
 	margin-right:0in;
 	margin-bottom:0in;
@@ -52,40 +52,40 @@ declare
 	line-height:107%;
 	font-size:11.0pt;
 	font-family:Calibri Light,Calibri,sans-serif;
-	color:#1F4D78;
-	font-weight:normal;"'
-	, @tableStyle varchar(1000) ='"font-family:Calibri Light,Calibri,sans-serif;font-size:80%;border-collapse:collapse;border:1px solid #DBDBDB;margin-top:4.0pt;width:75%;"'
+	color:#404040;
+	font-weight:bold;"'
+	, @tableStyle varchar(1000) ='"font-family:Calibri Light,Calibri,sans-serif;font-size:80%;border-collapse:collapse;margin-top:4.0pt;width:90%;"'
  
 set @start  = 
 '<!DOCTYPE html>
 <html>
-<body style="font-family:Calibri,sans-serif;">'
+<body style="font-family:Calibri,sans-serif;color:#404040;">'
 
 set @overallStatus = '
-	<h2 style='+@h2+'>OVERALL JOB STATUS: {j}</h2>
+	<h2 style="'+@h2+'border-bottom:1px solid #A5A5A5;">OVERALL JOB STATUS: {j}</h2>
 	{error}'
 
 set @sourceStatus = '
-
-	<h2 style='+@h2+'>SOURCE: <span style="font-weight:bold">{u}</span></h2>
+	<br>
+	<h2 style="'+@h2+'">SOURCE: <span style="font-weight:bold">{u}</span></h2>
 	<h3 style='+@h3+'>STATUS</h3>
 	<div style="width: 100%; max-width: 800px;">
 		<table style='+@tableStyle+'>
 		<tbody>
 			<tr>
-				<td style="padding-left:8px;width:100px;"><span style="font-weight:normal">Start Time</span></td>
-				<td><strong>{d}</strong></td>
-				<td></td>
+				<td style="padding-left:8px;width:100px;border-bottom:1px solid #A5A5A5;">Start Time</td>
+				<td style="border-bottom:1px solid #A5A5A5;"><strong>{d}</strong></td>
+				<td style="border-bottom:1px solid #A5A5A5;"></td>
 			</tr>
 			<tr>
-				<td style="padding-left:8px;width:100px;">Decrypted</td>
-				<td><strong>{decrypted}</strong> Files</td>
-				<td style="text-align:right;padding-right:10px;">{decryptStatus}</td>
+				<td style="padding-left:8px;width:100px;border-bottom:1px solid #A5A5A5;">Decrypted</td>
+				<td style="border-bottom:1px solid #A5A5A5;"><strong>{decrypted}</strong> Files</td>
+				<td style="text-align:right;padding-right:10px;border-bottom:1px solid #A5A5A5;"">{decryptStatus}</td>
 			</tr>
 			<tr>
-				<td style="padding-left:8px;width:100px;">Processed</td>
-				<td><strong>{n}</strong> Files</td>
-				<td style="text-align:right;padding-right:10px;">{receivedStatus}</td>
+				<td style="padding-left:8px;width:100px;border-bottom:1px solid #A5A5A5;">Processed</td>
+				<td style="border-bottom:1px solid #A5A5A5;"><strong>{n}</strong> Files</td>
+				<td style="text-align:right;padding-right:10px;border-bottom:1px solid #A5A5A5;">{receivedStatus}</td>
 			</tr>
 		</tbody>
 		</table>
@@ -100,10 +100,10 @@ set @tableStart = '
 
 set @tableRow = '
 			<tr>
-				<td style="padding-left:8px;">{f}</td>
-				<td><strong>{rc}</strong> Rows</td>
-				<td>{ts}</td>
-				<td style="text-align:right;padding-right:10px;">{status}</td>
+				<td style="padding-left:8px;border-bottom:1px solid #A5A5A5;font-style: italic;">{f}</td>
+				<td style="border-bottom:1px solid #A5A5A5;"><strong>{rc}</strong> Rows</td>
+				<td style="border-bottom:1px solid #A5A5A5;">{ts}</td>
+				<td style="text-align:right;padding-right:10px;border-bottom:1px solid #A5A5A5;">{status}</td>
 			</tr>'
 
 set @tableEnd = '
@@ -283,3 +283,4 @@ begin
 		select @finalMessageText
 
 end
+
