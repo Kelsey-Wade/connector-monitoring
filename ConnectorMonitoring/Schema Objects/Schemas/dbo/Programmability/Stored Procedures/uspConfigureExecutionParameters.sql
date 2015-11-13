@@ -47,8 +47,8 @@ with ProcedureParams as(
 			, isnull(Email_CC, '') as Email_CC
 			, isnull(Environment, '') as Environment
 			, isnull(Content_Type, '') as Content_Type
-			, cast(IsExternalEmail as varchar(100)) as IsExternalEmail
-			, cast(IsInternalEmail as varchar(100)) as IsInternalEmail
+			, cast(IsExternalEmail as varchar(1000)) as IsExternalEmail
+			, cast(IsInternalEmail as varchar(1000)) as IsInternalEmail
 		from MonitoringProcedure
 		where id = @MonitoringProcedure_ID
 	) f

@@ -6,7 +6,7 @@ declare @currentID int
 
 EXEC [dbo].[uspConfigureMonitoring]
 	@TaskType = 'Check Connector Deploys'
-	, @Email_To = 'jeff.solomon@arcadiasolutions.com'
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com;omar.nema@arcadiasolutions.com'
 	, @Content_Type = 'HTML'
 	, @IsExternalEmail = 0
 	, @IsInternalEmail = 1
@@ -64,7 +64,7 @@ EXEC dbo.uspConfigureMonitoringSchedules
 
 EXEC [dbo].[uspConfigureMonitoring]
 	@TaskType = 'Check for Failed SFTPs'
-	, @Email_To = 'jeff.solomon@arcadiasolutions.com;InformaticaAlertsCT@arcadiasolutions.com'
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com;InformaticaAlertsCT@arcadiasolutions.com;omar.nema@arcadiasolutions.com'
 	, @Content_Type = 'HTML'
 	, @IsExternalEmail = 0
 	, @IsInternalEmail = 1

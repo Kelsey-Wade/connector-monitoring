@@ -250,14 +250,15 @@ begin
 		select @errors = '
 	<h2 style='+@h2+'>ERRORS:</h2>
 	<ul>'
-		select @errors+= '
+select @errors+= '
 		<li><strong>[ERROR] ['+ right('0000'+cast(SftpId as varchar),4) + '-' + upper(Acronym) + '_SFTP_'+upper(@Environment) + '] ['+convert(varchar, cast(tf_start as datetime))+'] Unable to decrypt files</strong>: '+d_Error+'</li>'
 
-		from #finalLog where d_status != 'success'
+		from (select distinct SFTPId, Acronym, tf_start, d_Error from #finalLog where d_status != 'success') e
 
 		select @errors += '
 		<li><strong>[ERROR] ['+ right('0000'+cast(SftpId as varchar),4) + '-' + upper(Acronym) + '_SFTP_'+upper(@Environment) + '] ['+convert(varchar, cast(tf_start as datetime))+'] File formatting error for '+FileNameShort+'</strong>: '+ErrorMessage+'</li>'
-		from #finalLog where nullif(ErrorMessage, '') is not null
+		from (select distinct SFTPId, Acronym, FileNameShort, tf_start, ErrorMessage from #finalLog where nullif(ErrorMessage, '') is not null) e
+
 
 		select @errors += '
 	</ul>'
