@@ -27,7 +27,7 @@ EXEC [dbo].[uspConfigureMonitoring]
 	, @Source = 'PR-LAORIED'
 	, @Environment = 'PRD'
 	, @Email_From = null
-	, @Email_To = 'jeff.solomon@arcadiasolutions.com'
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com;steve.copans@arcadiasolutions.com'
 	, @Email_CC = null
 	, @Content_Type = 'HTML'
 	, @IsExternalEmail = 0
@@ -39,7 +39,7 @@ EXEC [dbo].[uspConfigureMonitoring]
 EXEC dbo.uspConfigureMonitoringSchedules 
 	@MonitoringProcedure_ID = @currentId
 	, @ScheduleName = 'Daily'
-	, @StartTime = '11:00' 
+	, @StartTime = '09:00' 
 
 
 EXEC [dbo].[uspConfigureMonitoring]
