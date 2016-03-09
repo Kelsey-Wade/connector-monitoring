@@ -22,6 +22,7 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	, @ScheduleName = 'Daily'
 	, @StartTime = '9:00'
 
+
 EXEC [dbo].[uspConfigureMonitoring]
 	@TaskType = 'SendFileReceivedNotification'
 	, @Source = 'PR-LAORIED'
@@ -35,7 +36,6 @@ EXEC [dbo].[uspConfigureMonitoring]
 	, @AdditionalParameters = 'Group=GR-LAED,DoNotSend=0'
 	, @ID = @currentID output
 	
-
 EXEC dbo.uspConfigureMonitoringSchedules 
 	@MonitoringProcedure_ID = @currentId
 	, @ScheduleName = 'Daily'
@@ -55,7 +55,6 @@ EXEC [dbo].[uspConfigureMonitoring]
 	, @AdditionalParameters = 'Group=GR-LAED,DoNotSend=0'
 	, @ID = @currentID output
 	
-
 EXEC dbo.uspConfigureMonitoringSchedules 
 	@MonitoringProcedure_ID = @currentId
 	, @ScheduleName = 'Daily'
@@ -75,6 +74,7 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	, @ScheduleName = 'Daily'
 	, @StartTime = '09:30'
 
+
 EXEC [dbo].[uspConfigureMonitoring]
 	@TaskType = 'Update master seed list'
 	, @Email_To = null
@@ -88,4 +88,18 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	, @ScheduleName = 'Daily'
 	, @StartTime = '07:30'
 
+
+EXEC [dbo].[uspConfigureMonitoring]
+	@TaskType = 'Check CHPW-NEWHP extract'
+	, @Email_To = 'kelsey.wade@arcadiasolutions.com'
+	, @Content_Type = 'HTML'
+	, @IsExternalEmail = 0
+	, @IsInternalEmail = 1
+	, @ID = @currentID output
+
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '11:00'
+	
 	
