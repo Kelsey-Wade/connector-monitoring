@@ -9,7 +9,8 @@ VALUES
 ('SendFileReceivedNotification','uspFilesReceivedNotification'),
 ('Check Connector Deploys','uspCheckDeployedConnectors'),
 ('Check for Failed SFTPs','uspNotifyFailedSFTPTasks'),
-('Update master seed list','uspUpdateAllMasterSeeds')
+('Update master seed list','uspUpdateAllMasterSeeds'), 
+('LHCQF Error Reporting to CSV', 'uspLHCQFErrorReporting')
 
 UPDATE p
 SET p.Proc_Name =  t.Proc_Name

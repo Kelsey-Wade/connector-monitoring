@@ -88,4 +88,15 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	, @ScheduleName = 'Daily'
 	, @StartTime = '07:30'
 
+--LHCQF Error Reporting to CSV
+EXEC [dbo].[uspConfigureMonitoring]
+	@TaskType = 'LHCQF Error Reporting to CSV'
+	, @Environment = 'PRD'
+	, @ID = @currentID output
+
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '09:00'
+
 	
