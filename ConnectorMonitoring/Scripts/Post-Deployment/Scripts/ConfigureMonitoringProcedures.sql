@@ -6,7 +6,7 @@ declare @currentID int
 
 EXEC [dbo].[uspConfigureMonitoring]
 	@TaskType = 'Check Connector Deploys'
-	, @Email_To = 'jeff.solomon@arcadiasolutions.com;omar.nema@arcadiasolutions.com'
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com;pranav.parchure@arcadiasolutions.com'
 	, @Content_Type = 'HTML'
 	, @IsExternalEmail = 0
 	, @IsInternalEmail = 1
@@ -64,7 +64,7 @@ EXEC dbo.uspConfigureMonitoringSchedules
 
 EXEC [dbo].[uspConfigureMonitoring]
 	@TaskType = 'Check for Failed SFTPs'
-	, @Email_To = 'jeff.solomon@arcadiasolutions.com;InformaticaAlertsCT@arcadiasolutions.com;omar.nema@arcadiasolutions.com'
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com;InformaticaAlertsCT@arcadiasolutions.com;pranav.parchure@arcadiasolutions.com'
 	, @Content_Type = 'HTML'
 	, @IsExternalEmail = 0
 	, @IsInternalEmail = 1
@@ -97,6 +97,16 @@ EXEC [dbo].[uspConfigureMonitoring]
 EXEC dbo.uspConfigureMonitoringSchedules 
 	@MonitoringProcedure_ID = @currentId
 	, @ScheduleName = 'Daily'
-	, @StartTime = '09:00'
+	, @StartTime = '06:00'
+
+EXEC [dbo].[uspConfigureMonitoring]
+	@TaskType = 'LHCQF Error Reporting to CSV'
+	, @Environment = 'DEV'
+	, @ID = @currentID output
+
+EXEC dbo.uspConfigureMonitoringSchedules 
+	@MonitoringProcedure_ID = @currentId
+	, @ScheduleName = 'Daily'
+	, @StartTime = '08:00'
 
 	

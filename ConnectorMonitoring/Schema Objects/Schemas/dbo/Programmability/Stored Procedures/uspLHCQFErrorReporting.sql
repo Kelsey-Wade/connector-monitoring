@@ -4,12 +4,15 @@
 	, @EndTime datetime = null
 	, @SourceList xml = '
 <Sources>
-	<Source>PR-LAPATH</Source>
-	<Source>PR-LASMHED</Source>
-	<Source>GR-LAED</Source>
-	<Source>PR-LAORIED</Source>
-	<Source>PR-LAHH</Source>
-	<Source>PR-LARMC</Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-LAPATH"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-LASMHED"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="GR-LAED" Display="Orion ED Feed"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-LAORIED" Display="Orion ED Feed"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-LAHH"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-LARMC"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-LARMC"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-OCHSNERED"></Source>
+	<Source ServerName="LHCQFSQLPRD02" Source="PR-LAMOELG"></Source>
 </Sources>
 '
 	)
@@ -23,6 +26,7 @@ declare --Test categories (Stage Display Names)
 		, @Cat_Decrypt varchar(100) = 'Decrypt'
 		, @Cat_FilePP varchar(100) = 'File Preprocess'
 		, @Cat_InformaticaLoad varchar(100) = 'Informatica Load'
+		, @Cat_Prestaging varchar(100) = 'Prestaging'
 		--Test Types
 		, @Test_FileSize varchar(100) = 'File Size (KB)'
 		, @Test_RowCount varchar(100) = 'Row Count'
@@ -51,9 +55,18 @@ if object_id('tempdb..#informaticaLogClean') is not null drop table #informatica
 if object_id('tempdb..#results') is not null drop table #results
 
 --Get Sources from XML input
-select Sources.source.value('.','varchar(100)') as Source
+select Sources.source.value('@Source','varchar(100)') as Source
+	, Sources.source.value('@Display','varchar(100)') as Display
+	, 0 as CanQueryDB
+	, 0 as CanQueryTable
+	, ISNULL(
+		Sources.source.value('@ServerName','varchar(100)') , 
+		'PRESTGSQL' + @Environment + '01' 
+		) AS ServerName
+	, replace(Sources.source.value('@Source','varchar(100)'), 'PR-', '') + '_PRESTAGING_' + @Environment as DbName 
 into #sources
 from @SourceList.nodes('Sources/Source') as Sources(source)
+
 
 --File Intake Logs
 select distinct
@@ -62,7 +75,7 @@ select distinct
 	, 'PRS_' + p.Arc_Presource_Acronym + '_' + @Environment + '_PRS_Decrypt_ALL' as taskName
 	, case when f.FileName like '%[_]SFTP[_]%' then @Stage_SFTP else @Stage_FilePP end as stage
 	, p.Arc_Presource_Acronym
-	, p.Arc_Presource_Name
+	, isnull(s.Display, p.Arc_Presource_Name) as Arc_Presource_Name
 	, f.Id
 	, f.Sftp_Id
 	, f.ErrorMessage
@@ -88,7 +101,7 @@ select l.Inf_Object_Name
 		, l.Inf_Type
 		, l.Inf_Status
 		, p.Arc_PreSource_Acronym
-		, p.Arc_PreSource_Name
+		, isnull(s.Display, p.Arc_PreSource_Name) as Arc_PreSource_Name
 		, p.Arc_SFTP_Extract_ID
 into #informaticaLog
 from informaticaconfig_dev.dbo.inf_log l with (nolock)
@@ -152,6 +165,71 @@ update #fileLogClean
 set FileNameShort = case when FileNameShort like @FlatFileDateStampConvention
 					then right(FileNameShort, len(FileNameShort) - 24)
 					else FileNameShort end
+
+
+
+
+create table #PrestagingLog(
+	ID int not null
+	, RuleName varchar(100)
+	, RowIdentifier varchar(255)
+	, Arc_Orig_FileName varchar(255)
+	, Result varchar(100)
+	, RowCheckTimestamp datetime
+	, DatabaseName varchar(100)
+)
+
+
+--Because dealing with linked servers is no fun, and tends to cause errors with nested if statements...
+
+declare @PrestagingLogSql varchar(max) = ''
+
+--Make sure the DB Exists (in some cases, e.g. LAORIED, it won't)
+select @PrestagingLogSql +=
+'
+if exists(select top 1 1 from ' + quotename(ServerName) + '.master.sys.databases where name = ''' + DbName + ''')
+begin
+	update #sources set CanQueryDB = 1 where Source = ''' + Source + '''
+	
+end
+' 
+from #sources
+
+--select(@PrestagingLogSql)
+exec(@PrestagingLogSql)
+
+select @PrestagingLogSQL = ''
+
+--Make sure row-level logging is in place on the DB if we have access. 
+select @PrestagingLogSql +=
+'
+if exists(select top 1 1 from ' + quotename(ServerName) + '.' + quotename(DbName) + '.sys.tables where name = ''RuleViolations'')
+begin
+	update #sources set CanQueryTable = 1 where Source = ''' + Source + '''
+end
+' 
+from #sources
+where CanQueryDB = 1
+
+--select(@PrestagingLogSql)
+exec(@PrestagingLogSql)
+
+
+select @PrestagingLogSQL = ''
+select @PrestagingLogSql += 
+'
+insert #PrestagingLog(ID,RuleName,RowIdentifier,Arc_Orig_FileName,Result,RowCheckTimestamp,DatabaseName)
+select ID, RuleName, RowIdentifier, Arc_Orig_FileName, Result, RowCheckTimestamp, DatabaseName
+from ' + quotename(ServerName) + '.' + quotename(DbName) + '.dbo.RuleViolations
+' 
+from #sources
+where CanQueryDB = 1
+and CanQueryTable = 1
+
+
+--select(@PrestagingLogSql)
+exec(@PrestagingLogSql)
+
 
 
 declare @stepNum int = 1; 
@@ -311,6 +389,27 @@ select distinct StartTime as FileProcessingStartTime
 from #informaticaLogClean
 where FileNameShort is not null
 
+set @stepNum += 1;
+
+insert #results(FileProcessingStartTime, Source, StepNumber, Category, [FileName], [RowIdentifier], Test, Result, Status)
+select distinct StartTime as FileProcessingStartTime
+		, tf.SourceName as Source
+		, case when RuleName = 'Prestaging Row Count'
+				then @stepNum else @stepNum + 1 end as StepNumber
+		, 'Prestaging' as Category
+		, case when Arc_Orig_FileName like @FlatFileDateStampConvention
+					then right(Arc_Orig_FileName, len(Arc_Orig_FileName) - 24)
+					else Arc_Orig_FileName end as [FileName] 
+		, RowIdentifier as RowIdentifier
+		, case when RuleName = 'Prestaging Row Count'
+				then @Test_RowCount else RuleName end as Test
+		, Result as Result
+		, case when RuleName <> 'Prestaging Row Count' then 'WARNING' end as Status
+from #InformaticaLogClean tf
+join #PrestagingLog p
+	on p.RowCheckTimestamp between tf.StartTime and tf.EndTime
+	and p.DatabaseName = REPLACE(tf.Acronym, 'PR-', '') + '_PRESTAGING_' + @Environment
+
 
 
 --Set status for Informatica tasks. 
@@ -376,6 +475,32 @@ left join (
 where i.Test = @Test_RowCount
 and i.Category = @Cat_InformaticaLoad
 
+
+---Informatica load vs prestaging. 
+update p
+set
+	p.Status = case when isnull(FullRowCount , 0) = isnull(i.Result, 0) 
+		then @Status_OK else @Status_Warning end
+	, p.ErrorMessage =
+			case when isnull(FullRowCount , 0) <> isnull(i.Result, 0) 
+			then 'Prestaging Row Count (' + cast(isnull(FullRowCount , 0) as varchar) + 
+					') different from Informatica row count (' + cast(isnull(i.Result, 0) as varchar) + 
+					')' 
+			else null end
+from (
+	select *, sum(try_convert(int, Result)) over (partition by Source, FileProcessingStartTime) as FullRowCount
+	from #results 
+	where Test = @Test_RowCount
+	and Category = @Cat_Prestaging
+	) p
+left join #results i
+	on i.Test = p.Test
+	and i.Source = p.Source
+	and i.FileProcessingStartTime = p.FileProcessingStartTime
+	and i.Category = @Cat_InformaticaLoad
+
+
+
 --0 KB and 0 RowCounts
 update r
 	set r.Status = @Status_WARNING 
@@ -411,6 +536,8 @@ begin
 		, Result 
 		, Status 
 		, ErrorMessage 
+		, PrestagingEnvironment 
+		, MonitoringTimestamp
 		)
 	select FileProcessingStartTime 
 		, Source 
@@ -422,6 +549,8 @@ begin
 		, Result 
 		, Status 
 		, ErrorMessage  
+		, upper(@Environment)
+		, getdate()
 	from #results
 
 end
