@@ -6,7 +6,7 @@ declare @currentID int
 
 EXEC [dbo].[uspConfigureMonitoring]
 	@TaskType = 'Check Connector Deploys'
-	, @Email_To = 'jeff.solomon@arcadiasolutions.com;pranav.parchure@arcadiasolutions.com'
+	, @Email_To = 'jeff.solomon@arcadiasolutions.com;pranav.parchure@arcadiasolutions.com,kelsey.wade@arcadiasolutions.com'
 	, @Content_Type = 'HTML'
 	, @IsExternalEmail = 0
 	, @IsInternalEmail = 1
