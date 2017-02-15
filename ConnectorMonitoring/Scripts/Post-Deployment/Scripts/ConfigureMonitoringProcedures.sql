@@ -89,17 +89,4 @@ EXEC dbo.uspConfigureMonitoringSchedules
 	, @StartTime = '07:30'
 
 
---EXEC [dbo].[uspConfigureMonitoring]
---	@TaskType = 'Check CHPW-NEWHP extract'
---	, @Email_To = 'kelsey.wade@arcadiasolutions.com'
---	, @Content_Type = 'HTML'
---	, @IsExternalEmail = 0
---	, @IsInternalEmail = 1
---	, @ID = @currentID output
-
---EXEC dbo.uspConfigureMonitoringSchedules 
---	@MonitoringProcedure_ID = @currentId
---	, @ScheduleName = 'Daily'
---	, @StartTime = '11:00'
-	
 	
